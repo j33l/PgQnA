@@ -48,6 +48,14 @@ export function ApiKeySection({
       <form className="form-card" onSubmit={handleSubmit}>
         <label className="field-label" htmlFor="api-key">
           Jev API key
+          <a
+            href="https://console.typesafe.ai/keys"
+            rel="noopener noreferrer"
+            target="_blank"
+            style={{ marginLeft: "0.5rem" }}
+          >
+            How to get your Jev API key?
+          </a>
         </label>
         <div className="input-with-action">
           <input

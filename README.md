@@ -89,10 +89,23 @@ If a matching configuration exists:
 2. Extract the current page's content:
    - If a selector is configured, extract content from the matching element.
    - Otherwise, extract content from the entire page.
+   - For debugging, the extracted content is logged in the extension popup's
+     developer console.
 3. Use the **TypeSafe SDK** to invoke **Jev AI** with the extracted page content and the configured questions and answer options.
 4. Display the results in the extension popup.
 
 The popup should clearly associate each answer with its corresponding question and present the results in a readable format.
+Yes/no answers are colored green or red by polarity; choices without an
+unambiguous yes/no label and intermediate scores use a neutral style.
+
+### 3.3 Page Access and Data Transmission
+
+PgQnA requests access to the active tab only when the extension is clicked.
+It reads the configured selector's text, or the full visible page text if no
+selector is set, and sends that text and the configured questions to
+`https://api.typesafe.ai` using the saved Jev API key. The API key stays in
+trusted extension storage and is not exposed to the page content script. The
+extracted text is also logged in the extension popup console.
 
 ### 4. Key Requirements
 
