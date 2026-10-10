@@ -4,7 +4,7 @@
 
 # PgQnA — Page Questions and Answers
 
-**PgQnA** is a browser extension that uses **Jev AI Classifier** to answer questions based on the content of the current webpage. Users can ask questions and select from predefined answer options, making it easier to extract relevant information from web pages.
+**PgQnA** is a browser extension that uses **Jev AI Classifier** to answer questions based on the content of the current webpage. Questions can use TypeSafe's Choice, Score, and Noul primitives to select from options, rate an ordered scale, or judge a yes/no statement.
 
 ## 🛠️ Tech Stack
 
@@ -33,7 +33,11 @@ The Setup Page contains two tabs: **Setup** and **QnA**.
 #### 2.1 Setup Tab
 
 - Allow the user to enter and save their **Jev API Key**.
-- Store the API key securely and make it available to the extension when needed.
+- Store the API key and website QnA configurations in `chrome.storage.local`.
+- Restrict local storage access to trusted extension contexts with
+  `chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" })`,
+  preventing webpage content scripts from reading the API key. This does not
+  encrypt the key against access to the browser profile or other extension pages.
 - Validate the API key if the Jev API supports validation.
 - Persist the configuration so the user does not need to enter the key every time.
 
@@ -49,7 +53,23 @@ Each entry should support the following fields:
 
 - **Website Domain (required):** The domain for which the QnA configuration applies (e.g., `linkedin.com`).
 - **Specific CSS Selector (optional):** A CSS selector identifying the portion of the page to extract. If provided, only the matching element's content will be used. If omitted, the extension will use the entire page's content, which may increase token usage and processing costs.
-- **Questions and Answer Options (required):** Define the questions to be answered and their corresponding answer options, following the format and constraints specified in the Jev documentation.
+- **Questions (required):** Each question has an ID, a `type`, and `instructions`. Choice questions use a `criteria` map of option labels, Score questions use an ordered `criteria` list of at least two levels, and Noul questions may use `criteria.true` and `criteria.false` to describe yes and no. The saved `questions` object is keyed by question ID and uses the TypeSafe question shape:
+
+  ```json
+  {
+    "candidate_role": {
+      "type": "choice",
+      "instructions": "Which role best matches the page?",
+      "criteria": {
+        "engineer": null,
+        "designer": null,
+        "other": null
+      }
+    }
+  }
+  ```
+
+  See the [TypeSafe primitives documentation](https://docs.typesafe.ai/primitives) for the question types and criteria format.
 
 Users should be able to save and manage QnA configurations for each domain.
 
@@ -80,6 +100,6 @@ The popup should clearly associate each answer with its corresponding question a
 - Match website configurations against the current domain.
 - Support multiple website domains, each with its own QnA configurations.
 - Treat the CSS selector as optional and fall back to full-page content extraction when it is not provided.
-- Follow the Jev documentation for question and answer-option formatting.
+- Follow the [TypeSafe primitives documentation](https://docs.typesafe.ai/primitives) for question and criteria formatting.
 - Handle missing configurations, invalid API keys, content extraction failures, and API errors gracefully.
 - Provide clear loading, success, and error states in the extension popup.

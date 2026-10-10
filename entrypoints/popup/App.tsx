@@ -1,26 +1,37 @@
-import { useState } from "react";
-// import reactLogo from "@/assets/react.svg";
-// import wxtLogo from "/wxt.svg";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const hasOpenedSetup = useRef(false);
+  const [openError, setOpenError] = useState(false);
+  const setupUrl = browser.runtime.getURL("/setup.html");
+
+  useEffect(() => {
+    if (hasOpenedSetup.current) return;
+    hasOpenedSetup.current = true;
+
+    void browser.tabs
+      .create({ url: setupUrl })
+      .then(() => window.close())
+      .catch((error: unknown) => {
+        console.error("Unable to open the PgQnA setup page.", error);
+        setOpenError(true);
+      });
+  }, [setupUrl]);
 
   return (
-    <>
-      <h1>PgQnA</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
+    <main className="popup-message">
+      <h1>{openError ? "Couldn’t open setup" : "Opening PgQnA setup…"}</h1>
+      {openError ? (
         <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
+          <a href={setupUrl} target="_blank" rel="noreferrer">
+            Open the setup page
+          </a>
         </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the WXT and React logos to learn more
-      </p>
-    </>
+      ) : (
+        <p>Your setup page will open in a new tab.</p>
+      )}
+    </main>
   );
 }
 

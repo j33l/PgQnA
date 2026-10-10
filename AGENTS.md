@@ -132,6 +132,8 @@ The extension should remain lightweight, readable, and easy to use.
 
 Do not redesign the entire interface when the task only requires a localized change.
 
+Read the `DESIGN.md` file for the project's color palette, typography, and component guidelines.
+
 ---
 
 ## 7. Code Quality and Project Structure

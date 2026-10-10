@@ -1,3 +1,7 @@
+import { restrictSetupStorageAccess } from "./setup/storage";
+
 export default defineBackground(() => {
-  console.log('Hello background!', { id: browser.runtime.id });
+  void restrictSetupStorageAccess().catch((error: unknown) => {
+    console.error("Unable to restrict PgQnA storage access.", error);
+  });
 });
