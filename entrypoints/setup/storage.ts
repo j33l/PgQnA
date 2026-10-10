@@ -37,6 +37,12 @@ export interface SetupSettings {
   websites: WebsiteConfig[];
 }
 
+export interface SetupExport {
+  format: "pgqna-setup";
+  version: 1;
+  websites: WebsiteConfig[];
+}
+
 const SETTINGS_KEY = "pgqnaSetup";
 const EMPTY_SETTINGS: SetupSettings = { apiKey: "", websites: [] };
 let accessLevelPromise: Promise<void> | undefined;
@@ -68,6 +74,31 @@ export async function saveSetupSettings(
 ): Promise<void> {
   await restrictSetupStorageAccess();
   await browser.storage.local.set({ [SETTINGS_KEY]: settings });
+}
+
+export function createSetupExport(websites: WebsiteConfig[]): SetupExport {
+  return {
+    format: "pgqna-setup",
+    version: 1,
+    websites,
+  };
+}
+
+export function parseSetupExport(value: unknown): WebsiteConfig[] {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("The selected file is not a PgQnA setup export.");
+  }
+
+  const setupExport = value as Record<string, unknown>;
+  if (
+    setupExport.format !== "pgqna-setup" ||
+    setupExport.version !== 1 ||
+    !Array.isArray(setupExport.websites)
+  ) {
+    throw new Error("The selected file is not a supported PgQnA setup export.");
+  }
+
+  return setupExport.websites.map(parseWebsiteConfig);
 }
 
 function parseSetupSettings(value: unknown): SetupSettings {

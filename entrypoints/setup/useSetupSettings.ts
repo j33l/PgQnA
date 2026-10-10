@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   loadSetupSettings,
+  parseSetupExport,
   saveSetupSettings,
   type SetupSettings,
   type WebsiteConfig,
 } from "./storage";
+import { normalizeDomain } from "./website-config";
 
 export function useSetupSettings() {
   const [settings, setSettings] = useState<SetupSettings | null>(null);
@@ -121,11 +123,51 @@ export function useSetupSettings() {
     }
   }
 
+  async function importWebsites(contents: string) {
+    if (!settings) return;
+    clearFeedback();
+    setIsSaving(true);
+    try {
+      const websites = parseSetupExport(JSON.parse(contents) as unknown);
+      const seenDomains = new Set(
+        settings.websites.map((website) => website.domain),
+      );
+      for (const website of websites) {
+        if (normalizeDomain(website.domain) !== website.domain) {
+          throw new Error(`"${website.domain}" is not a valid website domain.`);
+        }
+        if (seenDomains.has(website.domain)) {
+          throw new Error(
+            `A configuration for ${website.domain} already exists. Remove it before importing this setup.`,
+          );
+        }
+        seenDomains.add(website.domain);
+      }
+
+      const updated: SetupSettings = {
+        ...settings,
+        websites: [...settings.websites, ...websites].sort((a, b) =>
+          a.domain.localeCompare(b.domain),
+        ),
+      };
+      await saveSetupSettings(updated);
+      setSettings(updated);
+      setNotice(
+        `${websites.length} website configuration${websites.length === 1 ? "" : "s"} imported. Your Jev API key was unchanged.`,
+      );
+    } catch (importError: unknown) {
+      setError(`Could not import setup: ${getErrorMessage(importError)}`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return {
     apiKey,
     clearFeedback,
     deleteWebsite,
     error,
+    importWebsites,
     isSaving,
     notice,
     saveApiKey,

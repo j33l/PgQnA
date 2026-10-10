@@ -2,6 +2,7 @@ import { useState } from "react";
 import iconUrl from "../../assets/icon.png";
 import { ApiKeySection } from "./ApiKeySection";
 import "./App.css";
+import { SetupTransferSection } from "./SetupTransferSection";
 import { WebsiteConfigForm } from "./WebsiteConfigForm";
 import { WebsiteList } from "./WebsiteList";
 import type { WebsiteConfig } from "./storage";
@@ -20,6 +21,7 @@ function App() {
     clearFeedback,
     deleteWebsite,
     error,
+    importWebsites,
     isSaving,
     notice,
     saveApiKey,
@@ -141,52 +143,64 @@ function App() {
                   onSave={saveApiKey}
                 />
               ) : (
-                <section
-                  id="qna-panel"
-                  aria-labelledby="qna-tab"
-                  className="tab-content"
-                  role="tabpanel"
-                >
-                  <div className="section-heading qna-heading">
-                    <div>
-                      <p className="section-kicker">STEP 2 OF 2</p>
-                      <h2>Your website questions</h2>
-                      <p className="section-description">
-                        Create TypeSafe Choice questions, ordered Score
-                        rubrics, or yes/no Noul questions for each website.
-                      </p>
+                <>
+                  <section
+                    id="qna-panel"
+                    aria-labelledby="qna-tab"
+                    className="tab-content"
+                    role="tabpanel"
+                  >
+                    <div className="section-heading qna-heading">
+                      <div>
+                        <p className="section-kicker">STEP 2 OF 2</p>
+                        <h2>Your website questions</h2>
+                        <p className="section-description">
+                          Create TypeSafe Choice questions, ordered Score
+                          rubrics, or yes/no Noul questions for each website.
+                        </p>
+                      </div>
+                      {!isAddingWebsite && (
+                        <button
+                          className="secondary-button"
+                          onClick={startNewWebsite}
+                          type="button"
+                        >
+                          <span aria-hidden="true">+</span>
+                          Add new
+                        </button>
+                      )}
                     </div>
-                    {!isAddingWebsite && (
-                      <button
-                        className="secondary-button"
-                        onClick={startNewWebsite}
-                        type="button"
-                      >
-                        <span aria-hidden="true">+</span>
-                        Add new
-                      </button>
-                    )}
-                  </div>
 
-                  {isAddingWebsite ? (
-                    <WebsiteConfigForm
-                      key={editingWebsite?.domain ?? "new"}
-                      editingWebsite={editingWebsite}
-                      isSaving={isSaving}
-                      onCancel={() => setIsAddingWebsite(false)}
-                      onError={setError}
-                      onSave={handleSaveWebsite}
-                    />
-                  ) : (
-                    <WebsiteList
-                      isSaving={isSaving}
-                      onAdd={startNewWebsite}
-                      onDelete={(domain) => void deleteWebsite(domain)}
-                      onEdit={startEditingWebsite}
-                      websites={settings.websites}
-                    />
-                  )}
-                </section>
+                    {isAddingWebsite ? (
+                      <WebsiteConfigForm
+                        key={editingWebsite?.domain ?? "new"}
+                        editingWebsite={editingWebsite}
+                        isSaving={isSaving}
+                        onCancel={() => setIsAddingWebsite(false)}
+                        onError={setError}
+                        onSave={handleSaveWebsite}
+                      />
+                    ) : (
+                      <WebsiteList
+                        isSaving={isSaving}
+                        onAdd={startNewWebsite}
+                        onDelete={(domain) => void deleteWebsite(domain)}
+                        onEdit={startEditingWebsite}
+                        websites={settings.websites}
+                      />
+                    )}
+                  </section>
+
+                  <SetupTransferSection
+                    isSaving={isSaving}
+                    onError={(message) => {
+                      clearFeedback();
+                      setError(message);
+                    }}
+                    onImport={importWebsites}
+                    websites={settings.websites}
+                  />
+                </>
               )}
             </>
           )}
