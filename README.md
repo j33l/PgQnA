@@ -116,3 +116,25 @@ extracted text is also logged in the extension popup console.
 - Follow the [TypeSafe primitives documentation](https://docs.typesafe.ai/primitives) for question and criteria formatting.
 - Handle missing configurations, invalid API keys, content extraction failures, and API errors gracefully.
 - Provide clear loading, success, and error states in the extension popup.
+
+## How to see the console logs for extension popup
+
+Read skill `wxt-browser-extensions`
+
+I’ll check the project’s extension entrypoints so I can point you to the right DevTools console for the logs from this file.
+
+Ran terminal command: graft ask "Where does entrypoints/setup/App.tsx run, and how can I view its console logs in the extension?" --source
+
+Ran terminal command: graft ask "Which console.log, console.error, or console.warn calls are in entrypoints/setup/App.tsx, and where is the setup page loaded?" --source --full
+
+Ran terminal command: graft grep "console."
+
+In this codebase, the page-content debug log is in the **popup**, not `entrypoints/setup/App.tsx`: `entrypoints/popup/App.tsx` logs `[PgQnA] Extracted page content`.
+
+To view it in Chrome:
+
+1. Open `chrome://extensions` and turn on **Developer mode**.
+2. Open PgQnA’s popup, then click **Inspect popup** on the extension’s card.
+3. In the DevTools **Console**, reproduce the action and look for `[PgQnA]`.
+
+The setup page runs in its own tab, so to see logs from that page, open its tab and open DevTools for that tab (right-click the page and choose **Inspect**, or press **⌘⌥I** on Mac). Console output is separate for each extension context; the website’s own DevTools console won’t show logs from the popup. Note that the setup component itself currently has no `console.*` calls.
