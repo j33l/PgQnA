@@ -33,6 +33,9 @@ export function WebsiteConfigForm({
 }: WebsiteConfigFormProps) {
   const [domain, setDomain] = useState(editingWebsite?.domain ?? "");
   const [selector, setSelector] = useState(editingWebsite?.selector ?? "");
+  const [stateContent, setStateContent] = useState(
+    editingWebsite?.stateContent ?? ""
+  );
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     editingWebsite ? toQuestionDrafts(editingWebsite) : [createQuestionDraft()]
   );
@@ -40,7 +43,12 @@ export function WebsiteConfigForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      const website = buildWebsiteConfig(domain, selector, questions);
+      const website = buildWebsiteConfig(
+        domain,
+        selector,
+        stateContent,
+        questions
+      );
       await onSave(website, editingWebsite?.domain ?? null);
     } catch (error: unknown) {
       onError(
@@ -130,6 +138,22 @@ export function WebsiteConfigForm({
         value={selector}
       />
       <p className="field-help">Leave blank to use the whole page content.</p>
+
+      <label className="field-label spaced-label" htmlFor="state-content">
+        Additional state content{" "}
+        <span className="optional-label">Optional</span>
+      </label>
+      <textarea
+        id="state-content"
+        name="state-content"
+        onChange={(event) => setStateContent(event.target.value)}
+        placeholder="Add context to include whenever questions are answered for this website"
+        rows={4}
+        value={stateContent}
+      />
+      <p className="field-help">
+        This content is sent to Jev alongside the selected page content.
+      </p>
 
       <div className="question-block">
         {questions.map((question, index) => (

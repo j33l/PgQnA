@@ -36,8 +36,19 @@ export async function answerWebsiteQuestions(
     apiKey,
     dangerouslyAllowBrowser: true,
   });
+  const userGivenState = website.stateContent.trim();
+  const state = userGivenState
+    ? `---
+User Given Data:
+
+${userGivenState}
+---
+Page (selected) Content:
+
+${pageContent}`
+    : pageContent;
   const { answers } = await client.systemOne({
-    state: pageContent,
+    state,
     questions,
   });
 

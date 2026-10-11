@@ -60,6 +60,7 @@ export function normalizeDomain(input: string): string | null {
 export function buildWebsiteConfig(
   domainInput: string,
   selectorInput: string,
+  stateContentInput: string,
   drafts: QuestionDraft[],
 ): WebsiteConfig {
   const domain = normalizeDomain(domainInput);
@@ -156,6 +157,7 @@ export function buildWebsiteConfig(
   return {
     domain,
     selector,
+    stateContent: stateContentInput.trim(),
     questions: Object.fromEntries(questionEntries),
   };
 }

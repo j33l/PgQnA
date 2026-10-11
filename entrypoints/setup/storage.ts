@@ -29,6 +29,7 @@ export type QuestionConfig =
 export interface WebsiteConfig {
   domain: string;
   selector: string;
+  stateContent: string;
   questions: Record<string, QuestionConfig>;
 }
 
@@ -132,7 +133,9 @@ function parseWebsiteConfig(value: unknown): WebsiteConfig {
   const website = value as Record<string, unknown>;
   if (
     typeof website.domain !== "string" ||
-    typeof website.selector !== "string"
+    typeof website.selector !== "string" ||
+    (website.stateContent !== undefined &&
+      typeof website.stateContent !== "string")
   ) {
     throw new Error(
       "Saved setup data is invalid. Remove it and set up PgQnA again.",
@@ -142,6 +145,8 @@ function parseWebsiteConfig(value: unknown): WebsiteConfig {
   return {
     domain: website.domain,
     selector: website.selector,
+    stateContent:
+      typeof website.stateContent === "string" ? website.stateContent : "",
     questions: parseQuestions(website.questions),
   };
 }
