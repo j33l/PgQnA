@@ -127,7 +127,7 @@ function App() {
           throw new Error("No readable page content was found.");
         }
 
-        console.log("[PgQnA] Extracted page content:", pageContent);
+        // console.log("[PgQnA] Extracted page content:", pageContent);
         setView({ status: "loading", message: "Finding your answers…" });
         const result = await answerWebsiteQuestions(
           settings.apiKey,
