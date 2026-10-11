@@ -11,6 +11,7 @@ export type AnswerSentiment = "positive" | "negative" | "neutral";
 
 export interface QuestionAnswer {
   id: string;
+  type: QuestionConfig["type"];
   instructions: string;
   value: string;
   confidence: number;
@@ -80,6 +81,7 @@ ${pageContent}`
             : "negative";
       return {
         id,
+        type: question.type,
         instructions: question.instructions,
         value:
           answer.noul === 0.5
@@ -95,6 +97,7 @@ ${pageContent}`
     if (answer.type === "choice") {
       return {
         id,
+        type: question.type,
         instructions: question.instructions,
         value: answer.choice,
         confidence: answer.confidence,
@@ -108,6 +111,7 @@ ${pageContent}`
     const highestScore = question.criteria.length - 1;
     return {
       id,
+      type: question.type,
       instructions: question.instructions,
       value: `${answer.score.toFixed(2)} / ${highestScore}`,
       confidence: answer.confidence,

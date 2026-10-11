@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Info, RefreshCw } from "lucide-react";
+import { Check, Info, RefreshCw } from "lucide-react";
 import {
   answerWebsiteQuestions,
   type QuestionAnswer,
@@ -188,6 +188,14 @@ function App() {
     }
   }
 
+  const binaryAnswers =
+    view.status === "answers"
+      ? view.answers.filter((answer) => answer.type === "noul")
+      : [];
+  const allBinaryAnswersGood =
+    binaryAnswers.length > 0 &&
+    binaryAnswers.every((answer) => answer.sentiment === "positive");
+
   return (
     <main className="popup">
       <header className="popup-header">
@@ -242,7 +250,11 @@ function App() {
       )}
 
       {view.status === "answers" && (
-        <section className="answers-panel">
+        <section
+          className={`answers-panel${
+            allBinaryAnswersGood ? " answers-panel--all-binary-good" : ""
+          }`}
+        >
           <div className="results-heading">
             <div>
               <p className="eyebrow">ANSWERS FOR</p>
@@ -309,6 +321,14 @@ function App() {
               </div>
             </div>
           </div>
+          {allBinaryAnswersGood && (
+            <div className="all-binary-good" role="status">
+              <span aria-hidden="true" className="all-binary-good__icon">
+                <Check size={12} strokeWidth={3} />
+              </span>
+              All Noul answers look good
+            </div>
+          )}
           <p className="console-note">
             Just like humans, AI can make mistakes. Verify answers.
           </p>
@@ -424,6 +444,9 @@ function isAnswersView(
       const item = answer as Record<string, unknown>;
       return (
         typeof item.id === "string" &&
+        (item.type === "choice" ||
+          item.type === "score" ||
+          item.type === "noul") &&
         typeof item.instructions === "string" &&
         typeof item.value === "string" &&
         typeof item.confidence === "number" &&

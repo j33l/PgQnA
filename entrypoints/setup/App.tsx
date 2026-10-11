@@ -143,9 +143,7 @@ function App() {
                   isLoaded={settings !== null}
                   isSaving={isSaving}
                   onApiKeyChange={setApiKey}
-                  onInputTokenRatePerMillionChange={
-                    setInputTokenRatePerMillion
-                  }
+                  onInputTokenRatePerMillionChange={setInputTokenRatePerMillion}
                   onSave={saveSettings}
                 />
               ) : (
@@ -214,7 +212,27 @@ function App() {
 
         <footer className="page-footer">
           <span>PgQnA</span>
-          <span>Powered by Jev</span>
+          <a
+            href="https://github.com/j33l/PgQnA"
+            rel="noreferrer"
+            target="_blank"
+          >
+            GitHub
+          </a>
+          <a
+            href="https://github.com/j33l/PgQnA/releases"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Releases
+          </a>
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLScUG_cYAu9vvRk3fLlamCyeBqhR3G5WcX1oQt6Fni5Yyripug/viewform?usp=publish-editor"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Share your use case
+          </a>
         </footer>
       </main>
     </div>
