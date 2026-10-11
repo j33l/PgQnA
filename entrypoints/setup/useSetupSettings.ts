@@ -3,6 +3,7 @@ import {
   loadSetupSettings,
   parseSetupExport,
   saveSetupSettings,
+  DEFAULT_INPUT_TOKEN_RATE_PER_MILLION,
   type SetupSettings,
   type WebsiteConfig,
 } from "./storage";
@@ -11,6 +12,9 @@ import { normalizeDomain } from "./website-config";
 export function useSetupSettings() {
   const [settings, setSettings] = useState<SetupSettings | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [inputTokenRatePerMillion, setInputTokenRatePerMillion] = useState(
+    String(DEFAULT_INPUT_TOKEN_RATE_PER_MILLION),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -22,6 +26,9 @@ export function useSetupSettings() {
         if (!isMounted) return;
         setSettings(saved);
         setApiKey(saved.apiKey);
+        setInputTokenRatePerMillion(
+          String(saved.inputTokenRatePerMillion),
+        );
       })
       .catch((loadError: unknown) => {
         if (!isMounted) return;
@@ -38,22 +45,37 @@ export function useSetupSettings() {
     setNotice("");
   }
 
-  async function saveApiKey() {
+  async function saveSettings() {
     if (!settings) return;
     clearFeedback();
+    const parsedRate = Number(inputTokenRatePerMillion);
+    if (
+      inputTokenRatePerMillion.trim() === "" ||
+      !Number.isFinite(parsedRate) ||
+      parsedRate < 0
+    ) {
+      setError("Enter a valid nonnegative cost rate per million input tokens.");
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const updated = { ...settings, apiKey: apiKey.trim() };
+      const updated = {
+        ...settings,
+        apiKey: apiKey.trim(),
+        inputTokenRatePerMillion: parsedRate,
+      };
       await saveSetupSettings(updated);
       setSettings(updated);
       setApiKey(updated.apiKey);
+      setInputTokenRatePerMillion(String(updated.inputTokenRatePerMillion));
       setNotice(
         updated.apiKey
-          ? "Jev API key saved in this browser."
-          : "Jev API key removed.",
+          ? "Jev API key and input-token rate saved in this browser."
+          : "Jev API key removed; input-token rate saved in this browser.",
       );
     } catch (saveError: unknown) {
-      setError(`Could not save API key: ${getErrorMessage(saveError)}`);
+      setError(`Could not save setup settings: ${getErrorMessage(saveError)}`);
     } finally {
       setIsSaving(false);
     }
@@ -170,9 +192,11 @@ export function useSetupSettings() {
     importWebsites,
     isSaving,
     notice,
-    saveApiKey,
+    saveSettings,
     saveWebsite,
     setApiKey,
+    inputTokenRatePerMillion,
+    setInputTokenRatePerMillion,
     setError,
     settings,
   };

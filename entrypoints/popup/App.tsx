@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { answerWebsiteQuestions, type QuestionAnswer } from "./ai";
+import {
+  answerWebsiteQuestions,
+  type QuestionAnswer,
+  type QuestionAnswerResult,
+} from "./ai";
 import "./App.css";
 import { loadSetupSettings } from "../setup/storage";
 import type { WebsiteConfig } from "../setup/storage";
@@ -9,7 +13,13 @@ type PopupView =
   | { status: "loading"; message: string }
   | { status: "error"; message: string }
   | { status: "not-configured"; domain: string }
-  | { status: "answers"; domain: string; answers: QuestionAnswer[] };
+  | {
+      status: "answers";
+      domain: string;
+      answers: QuestionAnswer[];
+      usage: QuestionAnswerResult["usage"];
+      inputTokenRatePerMillion: number;
+    };
 
 function App() {
   const [view, setView] = useState<PopupView>({
@@ -99,7 +109,7 @@ function App() {
 
         console.log("[PgQnA] Extracted page content:", pageContent);
         setView({ status: "loading", message: "Finding your answers…" });
-        const answers = await answerWebsiteQuestions(
+        const result = await answerWebsiteQuestions(
           settings.apiKey,
           website,
           pageContent
@@ -107,7 +117,9 @@ function App() {
         return {
           status: "answers",
           domain: website.domain,
-          answers,
+          answers: result.answers,
+          usage: result.usage,
+          inputTokenRatePerMillion: settings.inputTokenRatePerMillion,
         };
       } catch (error: unknown) {
         console.error("Unable to answer questions for the active page.", error);
@@ -179,8 +191,47 @@ function App() {
       {view.status === "answers" && (
         <section className="answers-panel">
           <div className="results-heading">
-            <p className="eyebrow">ANSWERS FOR</p>
-            <h1>{view.domain}</h1>
+            <div>
+              <p className="eyebrow">ANSWERS FOR</p>
+              <h1>{view.domain}</h1>
+            </div>
+            <div className="usage-details">
+              <button
+                aria-describedby="usage-tooltip"
+                aria-label="Token usage and cost details"
+                className="usage-info"
+                type="button"
+              >
+                i
+              </button>
+              <div className="usage-tooltip" id="usage-tooltip" role="tooltip">
+                <p>
+                  Input tokens: {view.usage.inputTokens.toLocaleString()}
+                </p>
+                <p>
+                  Output tokens: {view.usage.outputTokens.toLocaleString()}
+                </p>
+                <p>
+                  Total tokens:{" "}
+                  {(view.usage.inputTokens + view.usage.outputTokens).toLocaleString()}
+                </p>
+                <p>
+                  Rate: $
+                  {view.inputTokenRatePerMillion.toLocaleString(undefined, {
+                    maximumFractionDigits: 9,
+                  })}{" "}
+                  / 1 million input tokens
+                </p>
+                <p>
+                  Estimated cost:{" "}
+                  {formatUsd(
+                    (view.usage.inputTokens *
+                      view.inputTokenRatePerMillion) /
+                      1_000_000,
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
           <p className="console-note">
             Page text is also logged in the extension console for debugging.
@@ -204,6 +255,15 @@ function App() {
       )}
     </main>
   );
+}
+
+function formatUsd(amount: number): string {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 9,
+  }).format(amount);
 }
 
 function findWebsiteConfig(

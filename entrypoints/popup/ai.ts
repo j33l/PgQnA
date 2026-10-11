@@ -17,11 +17,19 @@ export interface QuestionAnswer {
   sentiment: AnswerSentiment;
 }
 
+export interface QuestionAnswerResult {
+  answers: QuestionAnswer[];
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
 export async function answerWebsiteQuestions(
   apiKey: string,
   website: WebsiteConfig,
   pageContent: string,
-): Promise<QuestionAnswer[]> {
+): Promise<QuestionAnswerResult> {
   if (!apiKey.trim()) {
     throw new Error("Save your Jev API key in setup before asking questions.");
   }
@@ -47,13 +55,13 @@ Page (selected) Content:
 
 ${pageContent}`
     : pageContent;
-  const { answers } = await client.systemOne({
+  const response = await client.systemOne({
     state,
     questions,
   });
 
-  return Object.entries(website.questions).map(([id, question]) => {
-    const answer = answers[id];
+  const answers = Object.entries(website.questions).map(([id, question]): QuestionAnswer => {
+    const answer = response.answers[id];
     if (!answer) {
       throw new Error(`Jev did not return an answer for "${id}".`);
     }
@@ -106,6 +114,14 @@ ${pageContent}`
             : "neutral",
     };
   });
+
+  return {
+    answers,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+  };
 }
 
 function toJevQuestion(question: QuestionConfig): Question {

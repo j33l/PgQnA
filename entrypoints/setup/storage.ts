@@ -35,6 +35,7 @@ export interface WebsiteConfig {
 
 export interface SetupSettings {
   apiKey: string;
+  inputTokenRatePerMillion: number;
   websites: WebsiteConfig[];
 }
 
@@ -45,7 +46,12 @@ export interface SetupExport {
 }
 
 const SETTINGS_KEY = "pgqnaSetup";
-const EMPTY_SETTINGS: SetupSettings = { apiKey: "", websites: [] };
+export const DEFAULT_INPUT_TOKEN_RATE_PER_MILLION = 0.042;
+const EMPTY_SETTINGS: SetupSettings = {
+  apiKey: "",
+  inputTokenRatePerMillion: DEFAULT_INPUT_TOKEN_RATE_PER_MILLION,
+  websites: [],
+};
 let accessLevelPromise: Promise<void> | undefined;
 
 export function restrictSetupStorageAccess(): Promise<void> {
@@ -111,7 +117,11 @@ function parseSetupSettings(value: unknown): SetupSettings {
   const settings = value as Record<string, unknown>;
   if (
     typeof settings.apiKey !== "string" ||
-    !Array.isArray(settings.websites)
+    !Array.isArray(settings.websites) ||
+    (settings.inputTokenRatePerMillion !== undefined &&
+      (typeof settings.inputTokenRatePerMillion !== "number" ||
+        !Number.isFinite(settings.inputTokenRatePerMillion) ||
+        settings.inputTokenRatePerMillion < 0))
   ) {
     throw new Error(
       "Saved setup data is invalid. Remove it and set up PgQnA again.",
@@ -120,6 +130,9 @@ function parseSetupSettings(value: unknown): SetupSettings {
 
   return {
     apiKey: settings.apiKey,
+    inputTokenRatePerMillion:
+      settings.inputTokenRatePerMillion ??
+      DEFAULT_INPUT_TOKEN_RATE_PER_MILLION,
     websites: settings.websites.map(parseWebsiteConfig),
   };
 }

@@ -168,7 +168,74 @@ button:focus-visible {
 }
 
 .results-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 10px;
+}
+
+.results-heading h1 {
+  overflow-wrap: anywhere;
+}
+
+.usage-details {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.usage-info {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #c8cbe0;
+  border-radius: 50%;
+  background: #fff;
+  color: #656d82;
+  cursor: help;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.usage-info:hover,
+.usage-info:focus-visible {
+  border-color: #625df5;
+  color: #514ce0;
+}
+
+.usage-tooltip {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 6px);
+  right: 0;
+  width: max-content;
+  max-width: 260px;
+  padding: 9px 11px;
+  border: 1px solid #454d69;
+  border-radius: 8px;
+  background: #1c2540;
+  box-shadow: 0 4px 12px rgba(39, 45, 86, 0.2);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, visibility 140ms ease;
+  visibility: hidden;
+}
+
+.usage-tooltip p {
+  margin: 0;
+}
+
+.usage-details:hover .usage-tooltip,
+.usage-details:focus-within .usage-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .eyebrow {

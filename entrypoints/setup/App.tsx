@@ -22,12 +22,14 @@ function App() {
     deleteWebsite,
     error,
     importWebsites,
+    inputTokenRatePerMillion,
     isSaving,
     notice,
-    saveApiKey,
+    saveSettings,
     saveWebsite,
     setApiKey,
     setError,
+    setInputTokenRatePerMillion,
     settings,
   } = useSetupSettings();
 
@@ -137,10 +139,14 @@ function App() {
                 <ApiKeySection
                   apiKey={apiKey}
                   hasApiKey={Boolean(settings.apiKey)}
+                  inputTokenRatePerMillion={inputTokenRatePerMillion}
                   isLoaded={settings !== null}
                   isSaving={isSaving}
                   onApiKeyChange={setApiKey}
-                  onSave={saveApiKey}
+                  onInputTokenRatePerMillionChange={
+                    setInputTokenRatePerMillion
+                  }
+                  onSave={saveSettings}
                 />
               ) : (
                 <>

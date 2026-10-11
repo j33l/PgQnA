@@ -2,18 +2,22 @@ import { useState, type FormEvent } from "react";
 
 interface ApiKeySectionProps {
   apiKey: string;
+  inputTokenRatePerMillion: string;
   isSaving: boolean;
   isLoaded: boolean;
   onApiKeyChange: (value: string) => void;
+  onInputTokenRatePerMillionChange: (value: string) => void;
   onSave: () => Promise<void>;
   hasApiKey: boolean;
 }
 
 export function ApiKeySection({
   apiKey,
+  inputTokenRatePerMillion,
   isSaving,
   isLoaded,
   onApiKeyChange,
+  onInputTokenRatePerMillionChange,
   onSave,
   hasApiKey,
 }: ApiKeySectionProps) {
@@ -81,6 +85,25 @@ export function ApiKeySection({
           extension pages, not webpage content scripts. The key is not encrypted
           against other local browser-profile access.
         </p>
+        <label className="field-label" htmlFor="input-token-rate">
+          Cost per 1 million input tokens (USD)
+        </label>
+        <input
+          id="input-token-rate"
+          min="0"
+          name="input-token-rate"
+          onChange={(event) =>
+            onInputTokenRatePerMillionChange(event.target.value)
+          }
+          required
+          step="any"
+          type="number"
+          value={inputTokenRatePerMillion}
+        />
+        <p className="field-help">
+          Used to estimate each answer’s input-token cost. Output tokens are
+          treated as free. The rate is stored locally in this browser.
+        </p>
         <div className="panel-footer">
           <p className="prototype-note">
             PgQnA does not validate the key until Jev provides a verified
@@ -91,7 +114,7 @@ export function ApiKeySection({
             disabled={isSaving || !isLoaded}
             type="submit"
           >
-            {isSaving ? "Saving…" : "Save API key"}
+            {isSaving ? "Saving…" : "Save settings"}
             <span aria-hidden="true">→</span>
           </button>
         </div>
