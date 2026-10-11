@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Info, RefreshCw } from "lucide-react";
 import {
   answerWebsiteQuestions,
   type QuestionAnswer,
@@ -21,12 +22,22 @@ type PopupView =
       inputTokenRatePerMillion: number;
     };
 
+const ANSWER_CACHE_KEY = "pgqnaAnswerCache";
+const ANSWER_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface CachedAnswers {
+  cacheKey: string;
+  cachedAt: number;
+  view: Extract<PopupView, { status: "answers" }>;
+}
+
 function App() {
   const [view, setView] = useState<PopupView>({
     status: "loading",
     message: "Checking this page…",
   });
   const initialization = useRef<Promise<PopupView | null> | null>(null);
+  const isRefreshing = useRef(false);
   const setupUrl = browser.runtime.getURL("/setup.html");
 
   const openSetup = useCallback(async () => {
@@ -38,10 +49,8 @@ function App() {
     }
   }, [setupUrl]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadAnswers(): Promise<PopupView | null> {
+  const loadAnswers = useCallback(
+    async (forceRefresh = false): Promise<PopupView | null> => {
       try {
         const settings = await loadSetupSettings();
         if (!settings.apiKey.trim()) {
@@ -82,6 +91,17 @@ function App() {
           };
         }
 
+        const cacheKey = await createAnswerCacheKey(
+          tab.id,
+          tab.url,
+          website,
+          settings.inputTokenRatePerMillion
+        );
+        if (!forceRefresh) {
+          const cached = await loadCachedAnswers(cacheKey);
+          if (cached) return cached;
+        }
+
         setView({ status: "loading", message: "Reading page content…" });
         const [injection] = await browser.scripting.executeScript({
           target: { tabId: tab.id },
@@ -114,13 +134,21 @@ function App() {
           website,
           pageContent
         );
-        return {
+        const answersView: Extract<PopupView, { status: "answers" }> = {
           status: "answers",
           domain: website.domain,
           answers: result.answers,
           usage: result.usage,
           inputTokenRatePerMillion: settings.inputTokenRatePerMillion,
         };
+        await browser.storage.session.set({
+          [ANSWER_CACHE_KEY]: {
+            cacheKey,
+            cachedAt: Date.now(),
+            view: answersView,
+          } satisfies CachedAnswers,
+        });
+        return answersView;
       } catch (error: unknown) {
         console.error("Unable to answer questions for the active page.", error);
         return {
@@ -131,8 +159,12 @@ function App() {
               : "PgQnA could not answer questions for this page.",
         };
       }
-    }
+    },
+    [setupUrl]
+  );
 
+  useEffect(() => {
+    let isMounted = true;
     initialization.current ??= loadAnswers();
     void initialization.current.then((result) => {
       if (isMounted && result) setView(result);
@@ -140,7 +172,21 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, [openSetup, setupUrl]);
+  }, [loadAnswers]);
+
+  async function refreshAnswers() {
+    if (isRefreshing.current || view.status === "loading") return;
+    isRefreshing.current = true;
+    setView({ status: "loading", message: "Refreshing answers…" });
+    try {
+      initialization.current = loadAnswers(true);
+      const result = await initialization.current;
+      if (result) setView(result);
+    } finally {
+      initialization.current = null;
+      isRefreshing.current = false;
+    }
+  }
 
   return (
     <main className="popup">
@@ -169,6 +215,13 @@ function App() {
         <section aria-live="assertive" className="status-panel error-panel">
           <h1>Couldn’t get answers</h1>
           <p>{view.message}</p>
+          <button
+            className="primary-button"
+            onClick={() => void refreshAnswers()}
+            type="button"
+          >
+            Refresh answers
+          </button>
         </section>
       )}
 
@@ -195,46 +248,69 @@ function App() {
               <p className="eyebrow">ANSWERS FOR</p>
               <h1>{view.domain}</h1>
             </div>
-            <div className="usage-details">
-              <button
-                aria-describedby="usage-tooltip"
-                aria-label="Token usage and cost details"
-                className="usage-info"
-                type="button"
-              >
-                i
-              </button>
-              <div className="usage-tooltip" id="usage-tooltip" role="tooltip">
-                <p>
-                  Input tokens: {view.usage.inputTokens.toLocaleString()}
-                </p>
-                <p>
-                  Output tokens: {view.usage.outputTokens.toLocaleString()}
-                </p>
-                <p>
-                  Total tokens:{" "}
-                  {(view.usage.inputTokens + view.usage.outputTokens).toLocaleString()}
-                </p>
-                <p>
-                  Rate: $
-                  {view.inputTokenRatePerMillion.toLocaleString(undefined, {
-                    maximumFractionDigits: 9,
-                  })}{" "}
-                  / 1 million input tokens
-                </p>
-                <p>
-                  Estimated cost:{" "}
-                  {formatUsd(
-                    (view.usage.inputTokens *
-                      view.inputTokenRatePerMillion) /
-                      1_000_000,
-                  )}
-                </p>
+            <div className="results-actions">
+              <div className="button-tooltip-wrapper">
+                <button
+                  aria-describedby="refresh-tooltip"
+                  aria-label="Refresh answers"
+                  className="icon-button refresh-button"
+                  onClick={() => void refreshAnswers()}
+                  type="button"
+                >
+                  <RefreshCw aria-hidden="true" size={16} strokeWidth={2} />
+                </button>
+                <div
+                  className="button-tooltip"
+                  id="refresh-tooltip"
+                  role="tooltip"
+                >
+                  Refresh answers
+                </div>
+              </div>
+              <div className="button-tooltip-wrapper">
+                <button
+                  aria-describedby="usage-tooltip"
+                  aria-label="Token usage and cost details"
+                  className="icon-button usage-info"
+                  type="button"
+                >
+                  <Info aria-hidden="true" size={16} strokeWidth={2} />
+                </button>
+                <div
+                  className="button-tooltip usage-tooltip"
+                  id="usage-tooltip"
+                  role="tooltip"
+                >
+                  <p>Input tokens: {view.usage.inputTokens.toLocaleString()}</p>
+                  <p>
+                    Output tokens: {view.usage.outputTokens.toLocaleString()}
+                  </p>
+                  <p>
+                    Total tokens:{" "}
+                    {(
+                      view.usage.inputTokens + view.usage.outputTokens
+                    ).toLocaleString()}
+                  </p>
+                  <p>
+                    Rate: $
+                    {view.inputTokenRatePerMillion.toLocaleString(undefined, {
+                      maximumFractionDigits: 9,
+                    })}{" "}
+                    / 1 million input tokens
+                  </p>
+                  <p>
+                    Estimated cost:{" "}
+                    {formatUsd(
+                      (view.usage.inputTokens * view.inputTokenRatePerMillion) /
+                        1_000_000
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
           <p className="console-note">
-            Page text is also logged in the extension console for debugging.
+            Just like humans, AI can make mistakes. Verify answers.
           </p>
           <div className="answer-list">
             {view.answers.map((answer) => (
@@ -264,6 +340,100 @@ function formatUsd(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 9,
   }).format(amount);
+}
+
+async function createAnswerCacheKey(
+  tabId: number,
+  pageUrl: string,
+  website: WebsiteConfig,
+  inputTokenRatePerMillion: number
+): Promise<string> {
+  const request = JSON.stringify([
+    tabId,
+    pageUrl,
+    website,
+    inputTokenRatePerMillion,
+  ]);
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(request)
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+}
+
+async function loadCachedAnswers(
+  cacheKey: string
+): Promise<Extract<PopupView, { status: "answers" }> | undefined> {
+  const stored: Record<string, unknown> = await browser.storage.session.get(
+    ANSWER_CACHE_KEY
+  );
+  const value = stored[ANSWER_CACHE_KEY];
+  if (!isCachedAnswers(value)) {
+    if (value !== undefined) {
+      await browser.storage.session.remove(ANSWER_CACHE_KEY);
+    }
+    return undefined;
+  }
+
+  const age = Date.now() - value.cachedAt;
+  if (value.cacheKey !== cacheKey || age < 0 || age >= ANSWER_CACHE_TTL_MS) {
+    await browser.storage.session.remove(ANSWER_CACHE_KEY);
+    return undefined;
+  }
+  return value.view;
+}
+
+function isCachedAnswers(value: unknown): value is CachedAnswers {
+  if (typeof value !== "object" || value === null) return false;
+  const cache = value as Record<string, unknown>;
+  return (
+    typeof cache.cacheKey === "string" &&
+    typeof cache.cachedAt === "number" &&
+    Number.isFinite(cache.cachedAt) &&
+    isAnswersView(cache.view)
+  );
+}
+
+function isAnswersView(
+  value: unknown
+): value is Extract<PopupView, { status: "answers" }> {
+  if (typeof value !== "object" || value === null) return false;
+  const view = value as Record<string, unknown>;
+  if (
+    view.status !== "answers" ||
+    typeof view.domain !== "string" ||
+    !Array.isArray(view.answers) ||
+    typeof view.usage !== "object" ||
+    view.usage === null ||
+    typeof view.inputTokenRatePerMillion !== "number" ||
+    !Number.isFinite(view.inputTokenRatePerMillion)
+  ) {
+    return false;
+  }
+
+  const usage = view.usage as Record<string, unknown>;
+  return (
+    typeof usage.inputTokens === "number" &&
+    Number.isFinite(usage.inputTokens) &&
+    typeof usage.outputTokens === "number" &&
+    Number.isFinite(usage.outputTokens) &&
+    view.answers.every((answer: unknown) => {
+      if (typeof answer !== "object" || answer === null) return false;
+      const item = answer as Record<string, unknown>;
+      return (
+        typeof item.id === "string" &&
+        typeof item.instructions === "string" &&
+        typeof item.value === "string" &&
+        typeof item.confidence === "number" &&
+        Number.isFinite(item.confidence) &&
+        (item.sentiment === "positive" ||
+          item.sentiment === "negative" ||
+          item.sentiment === "neutral")
+      );
+    })
+  );
 }
 
 function findWebsiteConfig(
