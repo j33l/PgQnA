@@ -15,6 +15,7 @@ export interface ScoreQuestionConfig {
 export interface NoulQuestionConfig {
   type: "noul";
   instructions: string;
+  preferredAnswer?: "yes" | "no";
   criteria?: {
     true?: string;
     false?: string;
@@ -263,6 +264,13 @@ function isQuestionConfig(value: unknown): value is QuestionConfig {
   }
 
   if (question.type === "noul") {
+    if (
+      question.preferredAnswer !== undefined &&
+      question.preferredAnswer !== "yes" &&
+      question.preferredAnswer !== "no"
+    ) {
+      return false;
+    }
     if (question.criteria === undefined) return true;
     if (question.criteria === null) return true;
     if (

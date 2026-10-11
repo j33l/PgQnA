@@ -225,6 +225,32 @@ export function WebsiteConfigForm({
               type="text"
               value={question.instructions}
             />
+            {question.type === "noul" && (
+              <>
+                <label
+                  className="field-label spaced-label"
+                  htmlFor={`preferred-answer-${index}`}
+                >
+                  Preferred answer
+                </label>
+                <select
+                  id={`preferred-answer-${index}`}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value === "yes" || value === "no") {
+                      updateQuestion(index, "preferredAnswer", value);
+                    }
+                  }}
+                  value={question.preferredAnswer}
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+                <p className="field-help">
+                  The preferred answer is treated as positive in results.
+                </p>
+              </>
+            )}
             {question.type === "choice" && (
               <>
                 <label

@@ -68,7 +68,16 @@ ${pageContent}`
 
     if (answer.type === "noul") {
       const positive = answer.noul > 0.5;
-      const negative = answer.noul < 0.5;
+      const preferredAnswer =
+        question.type === "noul" && question.preferredAnswer === "no"
+          ? "no"
+          : "yes";
+      const preferredOutcome =
+        answer.noul === 0.5
+          ? "neutral"
+          : positive === (preferredAnswer === "yes")
+            ? "positive"
+            : "negative";
       return {
         id,
         instructions: question.instructions,
@@ -79,11 +88,7 @@ ${pageContent}`
                 Math.max(answer.noul, 1 - answer.noul) * 100,
               )}%)`,
         confidence: Math.max(answer.noul, 1 - answer.noul),
-        sentiment: positive
-          ? "positive"
-          : negative
-            ? "negative"
-            : "neutral",
+        sentiment: preferredOutcome,
       };
     }
 

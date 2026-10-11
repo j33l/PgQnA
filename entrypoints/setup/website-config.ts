@@ -9,6 +9,7 @@ export interface QuestionDraft {
   type: QuestionType;
   instructions: string;
   criteria: string;
+  preferredAnswer: "yes" | "no";
   yesCriteria: string;
   noCriteria: string;
 }
@@ -19,6 +20,7 @@ export function createQuestionDraft(id = "question_1"): QuestionDraft {
     type: "choice",
     instructions: "",
     criteria: "",
+    preferredAnswer: "yes",
     yesCriteria: "",
     noCriteria: "",
   };
@@ -145,6 +147,7 @@ export function buildWebsiteConfig(
       {
         type: "noul",
         instructions,
+        preferredAnswer: draft.preferredAnswer,
         ...(Object.keys(noulCriteria).length ? { criteria: noulCriteria } : {}),
       },
     ]);
@@ -186,6 +189,7 @@ export function toQuestionDrafts(website: WebsiteConfig): QuestionDraft[] {
       ...createQuestionDraft(id),
       type: "noul" as const,
       instructions: question.instructions,
+      preferredAnswer: question.preferredAnswer ?? "yes",
       yesCriteria: question.criteria?.true ?? "",
       noCriteria: question.criteria?.false ?? "",
     };
